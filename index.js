@@ -31,10 +31,15 @@ app.use(cors({
         // Origin yoksa (örn: mobil uygulamalar) izin ver
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.indexOf(origin) !== -1) {
+        if (
+            allowedOrigins.indexOf(origin) !== -1 ||
+            origin.endsWith('.railway.app') ||
+            origin.startsWith('http://192.168.') ||
+            origin.startsWith('http://10.')
+        ) {
             callback(null, true);
         } else {
-            callback(new Error('CORS policy: Origin not allowed'));
+            callback(new Error('CORS policy: Origin not allowed: ' + origin));
         }
     },
     credentials: true,
