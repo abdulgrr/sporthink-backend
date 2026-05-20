@@ -51,7 +51,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/public', express.static('public'));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
-app.use('/avatar-assets', express.static(path.join(__dirname, '..', 'sporthink_app', 'assets', 'avatar')));
+app.use('/avatar-assets', express.static(path.join(__dirname, 'public', 'avatar')));
 
 // Session ayarları
 app.use(session({
