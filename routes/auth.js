@@ -89,7 +89,7 @@ router.post('/register', async (req, res) => {
         }
 
         // 6. E-posta zaten sistemde var mı kontrolü
-        const [existingUsers] = await db.query('SELECT * FROM Users WHERE email = ?', [email]);
+        const [existingUsers] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
         if (existingUsers.length > 0) {
             return res.status(400).json({ message: 'Bu e-posta adresi zaten kullanılıyor.' });
         }
@@ -102,7 +102,7 @@ router.post('/register', async (req, res) => {
         const userId = crypto.randomUUID();
 
         // 9. Kullanıcı adı zaten var mı kontrolü
-        const [existingUsername] = await db.query('SELECT * FROM Users WHERE username = ?', [username]);
+        const [existingUsername] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
         if (existingUsername.length > 0) {
             return res.status(400).json({ message: 'Bu kullanıcı adı zaten kullanılıyor.' });
         }
@@ -111,7 +111,7 @@ router.post('/register', async (req, res) => {
         const defaultConfig = JSON.stringify({ skin: 1, eyes: 'goz_normal', mouth: 'agiz_mutlu', head: null });
 
         const insertQuery = `
-            INSERT INTO Users (id, username, first_name, last_name, phone_number, email, password_hash, avatar_url)
+            INSERT INTO users (id, username, first_name, last_name, phone_number, email, password_hash, avatar_url)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await db.query(insertQuery, [userId, username, first_name, last_name, phone_number, email, hashedPassword, defaultConfig]);
@@ -181,7 +181,7 @@ router.post('/login', async (req, res) => {
         }
 
         // 2. Veritabanında bu e-posta VEYA kullanıcı adı var mı?
-        const [users] = await db.query('SELECT * FROM Users WHERE email = ? OR username = ?', [email, email]);
+        const [users] = await db.query('SELECT * FROM users WHERE email = ? OR username = ?', [email, email]);
         if (users.length === 0) {
             return res.status(401).json({ message: 'Hatalı e-posta/kullanıcı adı veya şifre.' });
         }

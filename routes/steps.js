@@ -199,7 +199,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
         let streakExtended = false;
 
         if (stepsToday >= streakMinSteps) {
-            const [userStats] = await connection.query('SELECT current_streak, last_step_date FROM Users WHERE id = ?', [userId]);
+            const [userStats] = await connection.query('SELECT current_streak, last_step_date FROM users WHERE id = ?', [userId]);
             const lastDate = userStats[0].last_step_date;
             
             const [dateDiff] = await connection.query('SELECT DATEDIFF(CURDATE(), COALESCE(?, "2000-01-01")) as diff', [lastDate]);
@@ -207,11 +207,11 @@ router.post('/sync', authMiddleware, async (req, res) => {
 
             if (diff === 1) {
                 // Dün de hedefi tutturmuş, seriyi artır
-                await connection.query('UPDATE Users SET current_streak = current_streak + 1, last_step_date = CURDATE() WHERE id = ?', [userId]);
+                await connection.query('UPDATE users SET current_streak = current_streak + 1, last_step_date = CURDATE() WHERE id = ?', [userId]);
                 streakExtended = true;
             } else if (diff > 1 || lastDate === null) {
                 // Seri bozulmuş veya ilk kez, 1'den başla
-                await connection.query('UPDATE Users SET current_streak = 1, last_step_date = CURDATE() WHERE id = ?', [userId]);
+                await connection.query('UPDATE users SET current_streak = 1, last_step_date = CURDATE() WHERE id = ?', [userId]);
                 streakExtended = true;
             }
             // diff === 0 ise bugün zaten güncellenmiş, atla
@@ -221,7 +221,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
 
         // --- LEVEL-UP ve STREAK MILESTONE KONTROLLERI ---
         // Önce mevcut kullanıcı verisini çek (puanlar artırılmadan ÖNCE)
-        const [userBeforeUpdate] = await connection.query('SELECT xp, current_streak FROM Users WHERE id = ?', [userId]);
+        const [userBeforeUpdate] = await connection.query('SELECT xp, current_streak FROM users WHERE id = ?', [userId]);
         const [settingsRows] = await connection.query("SELECT key_name, value FROM settings WHERE key_name IN ('xp_difficulty_modifier', 'level_up_points_reward')");
         const getSetting = (key, defaultVal) => {
             const row = settingsRows.find(s => s.key_name === key);
@@ -234,7 +234,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
         if (totalEarnedPoints > 0) {
             // SADECE Puan artır, Adım senkronizasyonu artık XP VERMİYOR!
             await connection.query(
-                'UPDATE Users SET total_points = total_points + ? WHERE id = ?',
+                'UPDATE users SET total_points = total_points + ? WHERE id = ?',
                 [totalEarnedPoints, userId]
             );
             await connection.query(
@@ -244,7 +244,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
         }
 
         // Streak milestone kontrolü
-        const [userAfterStreak] = await connection.query('SELECT current_streak FROM Users WHERE id = ?', [userId]);
+        const [userAfterStreak] = await connection.query('SELECT current_streak FROM users WHERE id = ?', [userId]);
         const currentStreak = userAfterStreak[0].current_streak || 0;
 
         const streakMilestones = [3, 7, 14, 25, 50, 75, 100];
@@ -260,7 +260,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
             const streakBonusPoints = currentStreak * 10; // Dinamik: 7 gün = 70, 100 gün = 1000
             streakEarnedXp = streakBonusPoints; // Streak'ten XP gelsin
             await connection.query(
-                'UPDATE Users SET total_points = total_points + ?, xp = xp + ? WHERE id = ?',
+                'UPDATE users SET total_points = total_points + ?, xp = xp + ? WHERE id = ?',
                 [streakBonusPoints, streakEarnedXp, userId]
             );
             await connection.query(
@@ -292,7 +292,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
         let levelUpData = null;
         if (newLevel.level > oldLevel.level) {
             await connection.query(
-                'UPDATE Users SET total_points = total_points + ? WHERE id = ?',
+                'UPDATE users SET total_points = total_points + ? WHERE id = ?',
                 [levelUpReward, userId]
             );
             await connection.query(
@@ -470,7 +470,7 @@ router.post('/convert', authMiddleware, async (req, res) => {
         if (totalEarnedPoints > 0) {
             // Puan VE XP birlikte artır
             await connection.query(
-                'UPDATE Users SET total_points = total_points + ?, xp = xp + ? WHERE id = ?',
+                'UPDATE users SET total_points = total_points + ?, xp = xp + ? WHERE id = ?',
                 [totalEarnedPoints, totalEarnedPoints, userId]
             );
             await connection.query(

@@ -110,7 +110,7 @@ app.post('/admin/login', async (req, res) => {
     try {
         // Admin kullanıcısını kontrol et
         const [adminUsers] = await db.query(
-            'SELECT * FROM Users WHERE username = ? AND role = ?',
+            'SELECT * FROM users WHERE username = ? AND role = ?',
             [username, 'admin']
         );
 

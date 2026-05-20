@@ -30,7 +30,7 @@ router.post('/redeem', authMiddleware, async (req, res) => {
         }
 
         const reward = rewards[0];
-        const [users] = await connection.query('SELECT total_points FROM Users WHERE id = ? FOR UPDATE', [userId]);
+        const [users] = await connection.query('SELECT total_points FROM users WHERE id = ? FOR UPDATE', [userId]);
         const user = users[0];
 
         if (!user || user.total_points < reward.required_points) {
@@ -43,7 +43,7 @@ router.post('/redeem', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Maalesef bu ödülün stoğu tükenmiş.' });
         }
 
-        await connection.query('UPDATE Users SET total_points = total_points - ? WHERE id = ?', [reward.required_points, userId]);
+        await connection.query('UPDATE users SET total_points = total_points - ? WHERE id = ?', [reward.required_points, userId]);
         await connection.query(
             'INSERT INTO PointsLedger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
             [crypto.randomUUID(), userId, 'spend', reward.required_points, 'reward', reward.id]
