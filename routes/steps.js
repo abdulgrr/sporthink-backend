@@ -79,12 +79,12 @@ router.post('/sync', authMiddleware, async (req, res) => {
                 );
             }
 
-            // 3. ZAMAN DOĞRULAMA — Gelecek tarihli veri engelleme
+            // 3. ZAMAN DOĞRULAMA — Gelecek tarihli veri engelleme (Saat dilimi farklarını gözeterek 24 saat tolerans)
             if (period_end) {
                 const clientEnd = new Date(period_end);
                 const serverNow = new Date();
                 const diffMs = clientEnd.getTime() - serverNow.getTime();
-                if (diffMs > 3600000) { // 1 saatten fazla ilerideyse
+                if (diffMs > 86400000) { // Saat dilimi uyuşmazlıkları (Örn: Türkiye GMT+3, Sunucu UTC) sebebiyle 24 saat tolerans tanındı
                     await connection.rollback();
                     return res.status(400).json({ 
                         message: 'Geçersiz zaman aralığı. Cihaz saatinizi kontrol edin.',
