@@ -144,7 +144,7 @@ router.post('/buy', authMiddleware, async (req, res) => {
             [crypto.randomUUID(), userId, item_key]
         );
         await connection.query(
-            'INSERT INTO PointsLedger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO pointsledger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
             [crypto.randomUUID(), userId, 'spend', item.price, 'avatar_purchase', item_key]
         );
 

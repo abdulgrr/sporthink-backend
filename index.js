@@ -833,7 +833,7 @@ app.post('/admin/badges/delete/:id', adminAuthMiddleware, async (req, res) => {
 // --- ADMIN TIPS ROTALARI ---
 app.get('/admin/tips', adminAuthMiddleware, async (req, res) => {
     try {
-        const [tips] = await db.execute('SELECT * FROM Tips ORDER BY created_at DESC');
+        const [tips] = await db.execute('SELECT * FROM tips ORDER BY created_at DESC');
         res.render('tips', { tips });
     } catch (error) {
         res.status(500).send('Sunucu hatası.');
@@ -845,7 +845,7 @@ app.post('/admin/tips/add', adminAuthMiddleware, async (req, res) => {
     const adminId = req.session.adminId;
 
     try {
-        await db.execute('INSERT INTO Tips (text) VALUES (?)', [text]);
+        await db.execute('INSERT INTO tips (text) VALUES (?)', [text]);
 
         // Log kaydı
         await db.query(
@@ -861,7 +861,7 @@ app.post('/admin/tips/add', adminAuthMiddleware, async (req, res) => {
 
 app.post('/admin/tips/toggle/:id', adminAuthMiddleware, async (req, res) => {
     try {
-        await db.execute('UPDATE Tips SET is_active = NOT is_active WHERE id = ?', [req.params.id]);
+        await db.execute('UPDATE tips SET is_active = NOT is_active WHERE id = ?', [req.params.id]);
         res.redirect('/admin/tips');
     } catch (error) {
         res.status(500).send('Hata oluştu.');
@@ -872,7 +872,7 @@ app.post('/admin/tips/delete/:id', adminAuthMiddleware, async (req, res) => {
     const adminId = req.session.adminId;
 
     try {
-        await db.execute('DELETE FROM Tips WHERE id = ?', [req.params.id]);
+        await db.execute('DELETE FROM tips WHERE id = ?', [req.params.id]);
 
         // Log kaydı
         await db.query(

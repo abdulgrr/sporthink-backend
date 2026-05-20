@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const [rewards] = await db.query('SELECT id, title, type, required_points, stock FROM Rewards WHERE is_active = TRUE');
+        const [rewards] = await db.query('SELECT id, title, type, required_points, stock FROM rewards WHERE is_active = TRUE');
         res.status(200).json(rewards);
     } catch (error) {
         console.error('Ödül listeleme hatası:', error);
@@ -23,7 +23,7 @@ router.post('/redeem', authMiddleware, async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const [rewards] = await connection.query('SELECT * FROM Rewards WHERE id = ? AND is_active = TRUE FOR UPDATE', [reward_id]);
+        const [rewards] = await connection.query('SELECT * FROM rewards WHERE id = ? AND is_active = TRUE FOR UPDATE', [reward_id]);
         if (rewards.length === 0) {
             await connection.rollback();
             return res.status(404).json({ message: 'Ödül bulunamadı veya aktif değil.' });
@@ -45,16 +45,16 @@ router.post('/redeem', authMiddleware, async (req, res) => {
 
         await connection.query('UPDATE users SET total_points = total_points - ? WHERE id = ?', [reward.required_points, userId]);
         await connection.query(
-            'INSERT INTO PointsLedger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO pointsledger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
             [crypto.randomUUID(), userId, 'spend', reward.required_points, 'reward', reward.id]
         );
         await connection.query(
-            'INSERT INTO UserRewards (id, user_id, reward_id, points_spent, status) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO userrewards (id, user_id, reward_id, points_spent, status) VALUES (?, ?, ?, ?, ?)',
             [crypto.randomUUID(), userId, reward.id, reward.required_points, 'issued']
         );
 
         if (reward.stock !== null) {
-            await connection.query('UPDATE Rewards SET stock = stock - 1 WHERE id = ?', [reward.id]);
+            await connection.query('UPDATE rewards SET stock = stock - 1 WHERE id = ?', [reward.id]);
         }
 
         await connection.commit();

@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/random', authMiddleware, async (req, res) => {
     try {
-        const [tips] = await db.query('SELECT text FROM Tips WHERE is_active = TRUE ORDER BY RAND() LIMIT 1');
+        const [tips] = await db.query('SELECT text FROM tips WHERE is_active = TRUE ORDER BY RAND() LIMIT 1');
         if (tips.length > 0) {
             res.json({ tip: tips[0].text });
         } else {

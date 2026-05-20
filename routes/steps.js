@@ -95,7 +95,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
         }
 
         // ========== MEVCUT BATCH KONTROLÜ ==========
-        const [existingBatch] = await connection.query('SELECT id FROM StepSync WHERE client_batch_id = ?', [client_batch_id]);
+        const [existingBatch] = await connection.query('SELECT id FROM stepsync WHERE client_batch_id = ?', [client_batch_id]);
         if (existingBatch.length > 0) {
             await connection.rollback();
             return res.status(200).json({ message: 'Bu adım paketi zaten işlenmiş.' });
@@ -103,7 +103,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
 
         const syncId = crypto.randomUUID();
         await connection.query(
-            'INSERT INTO StepSync (id, user_id, client_batch_id, source, period_start, period_end, status, device_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO stepsync (id, user_id, client_batch_id, source, period_start, period_end, status, device_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [syncId, userId, client_batch_id, source, period_start, period_end, 'processed', device_id || null]
         );
 
@@ -143,8 +143,8 @@ router.post('/sync', authMiddleware, async (req, res) => {
             // Aynı gün + aynı cihaz, farklı hesapla zaten sync edilmiş mi?
             if (anticheatEnabled && device_id) {
                 const [deviceDayCheck] = await connection.query(
-                    `SELECT ss.user_id FROM StepSync ss 
-                     INNER JOIN Steps st ON st.sync_id = ss.id 
+                    `SELECT ss.user_id FROM stepsync ss 
+                     INNER JOIN steps st ON st.sync_id = ss.id 
                      WHERE ss.device_id = ? AND st.day = ? AND ss.user_id != ?
                      LIMIT 1`,
                     [device_id, targetDay, userId]
@@ -158,7 +158,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
 
             // Veritabanında o gün için halihazırda ne kadar adım kaydedilmiş bul
             const [existingSteps] = await connection.query(
-                "SELECT COALESCE(SUM(step_count), 0) as total FROM Steps WHERE user_id = ? AND day = ?",
+                "SELECT COALESCE(SUM(step_count), 0) as total FROM steps WHERE user_id = ? AND day = ?",
                 [userId, targetDay]
             );
             const savedSteps = parseInt(existingSteps[0].total);
@@ -170,7 +170,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
                 const shouldGivePoints = !isSuspicious;
 
                 await connection.query(
-                    'INSERT INTO Steps (id, user_id, sync_id, day, step_count, is_valid, is_suspicious) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO steps (id, user_id, sync_id, day, step_count, is_valid, is_suspicious) VALUES (?, ?, ?, ?, ?, ?, ?)',
                     [stepId, userId, syncId, targetDay, deltaSteps, shouldGivePoints, isSuspicious]
                 );
                 
@@ -193,7 +193,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
         const [streakSetting] = await connection.query("SELECT value FROM settings WHERE key_name = 'streak_min_steps'");
         const streakMinSteps = streakSetting.length > 0 ? parseInt(streakSetting[0].value) : 5000;
 
-        const [todaySteps] = await connection.query("SELECT SUM(step_count) as total FROM Steps WHERE user_id = ? AND day = CURDATE()", [userId]);
+        const [todaySteps] = await connection.query("SELECT SUM(step_count) as total FROM steps WHERE user_id = ? AND day = CURDATE()", [userId]);
         const stepsToday = todaySteps[0].total || 0;
 
         let streakExtended = false;
@@ -238,7 +238,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
                 [totalEarnedPoints, userId]
             );
             await connection.query(
-                'INSERT INTO PointsLedger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO pointsledger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
                 [crypto.randomUUID(), userId, 'earn', totalEarnedPoints, 'steps', syncId]
             );
         }
@@ -264,7 +264,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
                 [streakBonusPoints, streakEarnedXp, userId]
             );
             await connection.query(
-                'INSERT INTO PointsLedger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO pointsledger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
                 [crypto.randomUUID(), userId, 'earn', streakBonusPoints, 'streak_milestone', `streak_${currentStreak}`]
             );
             
@@ -296,7 +296,7 @@ router.post('/sync', authMiddleware, async (req, res) => {
                 [levelUpReward, userId]
             );
             await connection.query(
-                'INSERT INTO PointsLedger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO pointsledger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
                 [crypto.randomUUID(), userId, 'earn', levelUpReward, 'level_up', `level_${newLevel.level}`]
             );
             
@@ -368,17 +368,17 @@ router.get('/total', authMiddleware, async (req, res) => {
         const userId = req.user.id;
         const { mondayStr, sundayStr, todayStr } = getWeekRange();
 
-        // Bu haftanın toplam adımları (tüm Steps - is_valid fark etmez)
+        // Bu haftanın toplam adımları (tüm steps - is_valid fark etmez)
         const [weekTotal] = await db.query(`
             SELECT COALESCE(SUM(step_count), 0) as total
-            FROM Steps
+            FROM steps
             WHERE user_id = ? AND day >= ? AND day <= ?
         `, [userId, mondayStr, sundayStr]);
 
         // Bugünkü adımlar
         const [todayTotal] = await db.query(`
             SELECT COALESCE(SUM(step_count), 0) as total
-            FROM Steps
+            FROM steps
             WHERE user_id = ? AND day = ?
         `, [userId, todayStr]);
 
@@ -411,7 +411,7 @@ router.get('/pending', authMiddleware, async (req, res) => {
         // Kullanıcının BU HAFTAKİ puana çevrilmemiş adımlarını getir
         const [pendingSteps] = await db.query(`
             SELECT day, SUM(step_count) as total_steps
-            FROM Steps
+            FROM steps
             WHERE user_id = ? AND is_valid = true AND day >= ? AND day <= ?
             GROUP BY day
             ORDER BY day DESC
@@ -445,7 +445,7 @@ router.post('/convert', authMiddleware, async (req, res) => {
         // Kullanıcının BU HAFTAKİ puana çevrilmemiş adımlarını bul
         const [pendingSteps] = await connection.query(`
             SELECT id, day, step_count
-            FROM Steps
+            FROM steps
             WHERE user_id = ? AND is_valid = true AND day >= ? AND day <= ?
         `, [userId, mondayStr, sundayStr]);
 
@@ -461,7 +461,7 @@ router.post('/convert', authMiddleware, async (req, res) => {
 
                 // Adımı puana çevrildi olarak işaretle
                 await connection.query(
-                    'UPDATE Steps SET is_valid = false WHERE id = ?',
+                    'UPDATE steps SET is_valid = false WHERE id = ?',
                     [step.id]
                 );
             }
@@ -474,7 +474,7 @@ router.post('/convert', authMiddleware, async (req, res) => {
                 [totalEarnedPoints, totalEarnedPoints, userId]
             );
             await connection.query(
-                'INSERT INTO PointsLedger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO pointsledger (id, user_id, type, points, source, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
                 [crypto.randomUUID(), userId, 'earn', totalEarnedPoints, 'steps_convert', crypto.randomUUID()]
             );
         }
