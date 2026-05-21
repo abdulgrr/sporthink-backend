@@ -308,7 +308,7 @@ app.get('/admin/avatar-items', adminAuthMiddleware, async (req, res) => {
 });
 
 const avatarStorage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'sporthink_app', 'assets', 'avatar')),
+    destination: (req, file, cb) => cb(null, path.join(__dirname, 'public', 'avatar')),
     filename: (req, file, cb) => {
         // Kategori prefix'ine göre dosya adını oluştur
         const category = req.body.category;
