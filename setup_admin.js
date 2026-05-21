@@ -6,7 +6,7 @@ async function createAdminUser() {
     try {
         // Admin kullanıcısının var olup olmadığını kontrol et
         const [existingAdmin] = await db.query(
-            'SELECT * FROM Users WHERE username = ?',
+            'SELECT * FROM users WHERE username = ?',
             ['admin']
         );
 
@@ -23,7 +23,7 @@ async function createAdminUser() {
         // Admin kullanıcısını oluştur
         const adminId = crypto.randomUUID();
         await db.query(
-            `INSERT INTO Users (id, username, first_name, last_name, email, password_hash, role, avatar_url)
+            `INSERT INTO users (id, username, first_name, last_name, email, password_hash, role, avatar_url)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [adminId, 'admin', 'Admin', 'User', 'admin@sporthink.com', hashedPassword, 'admin', 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin']
         );
